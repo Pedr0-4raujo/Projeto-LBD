@@ -456,6 +456,7 @@ Projeto-LBD/
 | Nome | GitHub |
 |---|---|
 | Pedro de Araujo Freitas | [Pedr0-4raujo](https://github.com/Pedr0-4raujo) |
+| Luiz Miguel Cavalcante Rendeiro De Almeida | [LuizAlmeida007](https://github.com/LuizAlmeida007) |
 
 ---
 

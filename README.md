@@ -46,9 +46,9 @@ Um marketplace precisa registrar **quem compra, quem vende, o que está à venda
 | ⚙️ | **Triggers** | 1 `BEFORE INSERT` (validação) e 1 `AFTER INSERT` (baixa de estoque) | ✅ |
 | 🔐 | **Usuários e permissões** | 3 usuários com níveis distintos, `GRANT`, `REVOKE` e `DROP USER` | ✅ |
 | 🔄 | **Transações** | exemplos de `COMMIT`, `ROLLBACK` e `SAVEPOINT` | ✅ |
-| ⚡ | **Índices** | índice em atributo de consulta frequente, com justificativa de desempenho | 🚧 |
-| 🛠️ | **Scripts de manutenção** | exemplos de `DROP`, `ALTER`, `UPDATE` e `DELETE` | 🚧 |
-| 🔎 | **Consultas** | `SELECT` com `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `GROUP BY`, `HAVING` e `ORDER BY` | 🚧 |
+| ⚡ | **Índices** | índice em data do pedido, com justificativa de desempenho | ✅ |
+| 🛠️ | **Scripts de manutenção** | exemplos seguros de `DROP`, `ALTER`, `UPDATE` e `DELETE` | ✅ |
+| 🔎 | **Consultas** | consultas com `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `GROUP BY`, `HAVING` e `ORDER BY` | ✅ |
 
 ---
 
@@ -69,7 +69,7 @@ Um marketplace precisa registrar **quem compra, quem vende, o que está à venda
 
 1. Instalar o [MySQL Workbench](https://www.mysql.com/products/workbench/).
 2. Abrir o Workbench e acessar **File > Open Model...**.
-3. Selecionar o arquivo [`Modelo_logico_amazon.mwb`](amazon-marketplace/Modelo_logico_amazon.mwb).
+3. Selecionar o arquivo [`Modelo_logico_amazon.mwb`](amazon_marketplace/Modelo_logico_amazon.mwb).
 4. Na aba **Model**, dar duplo clique em **EER Diagram** para abrir o diagrama com tabelas e relacionamentos.
 
 O diagrama abaixo resume o mesmo modelo e é exibido diretamente no GitHub.
@@ -339,11 +339,23 @@ Mensagens retornadas pelo trigger `BEFORE`:
 | Desfazer parte | `SAVEPOINT` → segundo `UPDATE` → `ROLLBACK TO SAVEPOINT` → `COMMIT` | só a primeira alteração é mantida |
 | Teste dos triggers | pedido e item dentro de uma transação → `ROLLBACK` | o estoque baixa durante a transação e volta ao final |
 
+### ⚡ Índices
+
+O arquivo [`indices.sql`](amazon_marketplace/indices.sql) cria o índice `idx_pedidos_usuario_data` em `pedidos(id_usuario, data_pedido)`. Ele ajuda a localizar os pedidos de um cliente e ordená-los por data.
+
+### 🔎 Consultas
+
+O arquivo [`consultas.sql`](amazon_marketplace/consultas.sql) traz exemplos simples com `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `GROUP BY`, `HAVING` e `ORDER BY`.
+
+### 🛠️ Scripts de manutenção
+
+O arquivo [`manutencao.sql`](amazon_marketplace/manutencao.sql) mostra como usar `ALTER`, `UPDATE`, `DELETE` e `DROP`. As mudanças de `UPDATE` e `DELETE` são desfeitas com `ROLLBACK`, para manter os dados de exemplo.
+
 ---
 
 ## 🌱 Dados de demonstração
 
-O arquivo [`inserts.sql`](amazon-marketplace/inserts.sql) popula todas as tabelas com dados fictícios, em ordem compatível com as chaves estrangeiras:
+O arquivo [`inserts.sql`](amazon_marketplace/inserts.sql) popula todas as tabelas com dados fictícios, em ordem compatível com as chaves estrangeiras:
 
 - **30 usuários** de diferentes cidades, com endereços, cartões padrão e carrinhos;
 - **30 vendedores** com CNPJ válido e **30 produtos** distribuídos em **30 categorias** (8 principais e 22 subcategorias);
@@ -371,13 +383,16 @@ Os arquivos devem ser executados **nesta ordem**:
 
 | # | Arquivo | Conteúdo |
 |---|---|---|
-| 1 | [`atividade_amazon.sql`](amazon-marketplace/atividade_amazon.sql) | cria o banco `amazon_marketplace` e as 20 tabelas |
-| 2 | [`inserts.sql`](amazon-marketplace/inserts.sql) | carga de dados |
-| 3 | [`views.sql`](amazon-marketplace/views.sql) | 3 views |
-| 4 | [`triggers.sql`](amazon-marketplace/triggers.sql) | 2 triggers e teste em transação |
-| 5 | [`usuarios.sql`](amazon-marketplace/usuarios.sql) | criação de 3 usuários |
-| 6 | [`permissoes.sql`](amazon-marketplace/permissoes.sql) | `GRANT`, `REVOKE` e `DROP USER` |
-| 7 | [`transacao.sql`](amazon-marketplace/transacao.sql) | `COMMIT`, `ROLLBACK` e `SAVEPOINT` |
+| 1 | [`atividade_amazon.sql`](amazon_marketplace/atividade_amazon.sql) | cria o banco `amazon_marketplace` e as 20 tabelas |
+| 2 | [`inserts.sql`](amazon_marketplace/inserts.sql) | carga de dados |
+| 3 | [`indices.sql`](amazon_marketplace/indices.sql) | índice para consultar pedidos de um cliente por data |
+| 4 | [`views.sql`](amazon_marketplace/views.sql) | 3 views |
+| 5 | [`consultas.sql`](amazon_marketplace/consultas.sql) | consultas com junções, agregação e ordenação |
+| 6 | [`triggers.sql`](amazon_marketplace/triggers.sql) | 2 triggers e teste em transação |
+| 7 | [`usuarios.sql`](amazon_marketplace/usuarios.sql) | criação de 3 usuários |
+| 8 | [`permissoes.sql`](amazon_marketplace/permissoes.sql) | `GRANT`, `REVOKE` e `DROP USER` |
+| 9 | [`transacao.sql`](amazon_marketplace/transacao.sql) | `COMMIT`, `ROLLBACK` e `SAVEPOINT` |
+| 10 | [`manutencao.sql`](amazon_marketplace/manutencao.sql) | exemplos de `DROP`, `ALTER`, `UPDATE` e `DELETE` |
 
 > ⚠️ O `atividade_amazon.sql` começa com `DROP DATABASE IF EXISTS amazon_marketplace;`. Se o banco já existir, todo o conteúdo será apagado e recriado.
 
@@ -392,7 +407,7 @@ Os arquivos devem ser executados **nesta ordem**:
 
 ### Pelo terminal
 
-Dentro da pasta `amazon-marketplace`:
+Dentro da pasta `amazon_marketplace`:
 
 ```bash
 mysql -u root -p
@@ -401,11 +416,14 @@ mysql -u root -p
 ```sql
 SOURCE atividade_amazon.sql;
 SOURCE inserts.sql;
+SOURCE indices.sql;
 SOURCE views.sql;
+SOURCE consultas.sql;
 SOURCE triggers.sql;
 SOURCE usuarios.sql;
 SOURCE permissoes.sql;
 SOURCE transacao.sql;
+SOURCE manutencao.sql;
 ```
 
 ### Conferindo o resultado
@@ -426,15 +444,18 @@ SHOW GRANTS FOR 'usuario_operador'@'localhost';
 ```
 Projeto-LBD/
 ├── 📄 README.md                        # documentação do projeto
-└── 📂 amazon-marketplace/
+└── 📂 amazon_marketplace/
     ├── Modelo_logico_amazon.mwb        # modelo lógico (MySQL Workbench)
     ├── atividade_amazon.sql            # banco e 20 tabelas
     ├── inserts.sql                     # carga de dados (699 INSERTs)
+    ├── indices.sql                     # índice para pedidos por cliente e data
     ├── views.sql                       # 3 views
+    ├── consultas.sql                   # JOINs, agrupamentos e ordenação
     ├── triggers.sql                    # trigger BEFORE e AFTER
     ├── usuarios.sql                    # criação de 3 usuários
     ├── permissoes.sql                  # GRANT, REVOKE e DROP USER
-    └── transacao.sql                   # COMMIT, ROLLBACK e SAVEPOINT
+    ├── transacao.sql                   # COMMIT, ROLLBACK e SAVEPOINT
+    └── manutencao.sql                  # DROP, ALTER, UPDATE e DELETE
 ```
 
 ---
@@ -445,9 +466,9 @@ Projeto-LBD/
 - [X] **Fase 2 (Estrutura):** banco e 20 tabelas com chaves e restrições
 - [X] **Fase 3 (Dados):** carga com no mínimo 30 registros por tabela
 - [X] **Fase 4 (Recursos):** views, triggers, usuários, permissões e transações
-- [ ] **Fase 5 (Desempenho):** índice com justificativa
-- [ ] **Fase 6 (Manutenção):** scripts de exclusão, alteração e edição de registros
-- [ ] **Fase 7 (Consultas):** `SELECT` com `JOIN`, agrupamentos e ordenação
+- [X] **Fase 5 (Desempenho):** índice com justificativa
+- [X] **Fase 6 (Manutenção):** scripts de exclusão, alteração e edição de registros
+- [X] **Fase 7 (Consultas):** `SELECT` com `JOIN`, agrupamentos e ordenação
 
 ---
 

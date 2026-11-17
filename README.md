@@ -8,7 +8,7 @@
 ![Workbench](https://img.shields.io/badge/MySQL%20Workbench-Modelagem-00758F?style=for-the-badge&logo=mysql&logoColor=white)
 ![Tabelas](https://img.shields.io/badge/Tabelas-20-6E40C9?style=for-the-badge)
 ![Triggers](https://img.shields.io/badge/Triggers-BEFORE%20%2B%20AFTER-2E7D32?style=for-the-badge)
-![Status](https://img.shields.io/badge/status-em%20andamento-F59E0B?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-conclu%C3%ADdo-2E7D32?style=for-the-badge)
 
 Modelagem lógica no **MySQL Workbench** e implementação completa em **SQL**
 
@@ -46,8 +46,8 @@ Um marketplace precisa registrar **quem compra, quem vende, o que está à venda
 | ⚙️ | **Triggers** | 1 `BEFORE INSERT` (validação) e 1 `AFTER INSERT` (baixa de estoque) | ✅ |
 | 🔐 | **Usuários e permissões** | 3 usuários com níveis distintos, `GRANT`, `REVOKE` e `DROP USER` | ✅ |
 | 🔄 | **Transações** | exemplos de `COMMIT`, `ROLLBACK` e `SAVEPOINT` | ✅ |
-| ⚡ | **Índices** | índice em data do pedido, com justificativa de desempenho | ✅ |
-| 🛠️ | **Scripts de manutenção** | exemplos seguros de `DROP`, `ALTER`, `UPDATE` e `DELETE` | ✅ |
+| ⚡ | **Índices** | índice composto por cliente e data do pedido, com justificativa de desempenho | ✅ |
+| 🛠️ | **Scripts de manutenção** | exemplos de `ALTER`, `UPDATE`, `DELETE` e `DROP`, com `ROLLBACK` para preservar os dados | ✅ |
 | 🔎 | **Consultas** | consultas com `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `GROUP BY`, `HAVING` e `ORDER BY` | ✅ |
 
 ---
@@ -341,15 +341,46 @@ Mensagens retornadas pelo trigger `BEFORE`:
 
 ### ⚡ Índices
 
-O arquivo [`indices.sql`](amazon_marketplace/indices.sql) cria o índice `idx_pedidos_usuario_data` em `pedidos(id_usuario, data_pedido)`. Ele ajuda a localizar os pedidos de um cliente e ordená-los por data.
+O arquivo [`indices.sql`](amazon_marketplace/indices.sql) cria o índice composto `idx_pedidos_usuario_data` em `pedidos (id_usuario, data_pedido)`.
+
+| Item | Descrição |
+|---|---|
+| **Campos indexados** | `id_usuario` e `data_pedido` da tabela `pedidos` |
+| **Motivo da escolha** | consultar os pedidos de um cliente, do mais recente para o mais antigo, é uma operação frequente em qualquer loja online |
+| **Benefício esperado** | o MySQL localiza os pedidos do cliente direto pelo índice e já os obtém ordenados pela data, evitando percorrer a tabela inteira e reordenar o resultado |
+
+```sql
+CREATE INDEX idx_pedidos_usuario_data
+    ON pedidos (id_usuario, data_pedido);
+
+SELECT id_pedido, data_pedido, status
+FROM pedidos
+WHERE id_usuario = 1
+  AND data_pedido >= '2026-01-01'
+ORDER BY data_pedido DESC;
+```
 
 ### 🔎 Consultas
 
-O arquivo [`consultas.sql`](amazon_marketplace/consultas.sql) traz exemplos simples com `INNER JOIN`, `LEFT JOIN`, `RIGHT JOIN`, `GROUP BY`, `HAVING` e `ORDER BY`.
+O arquivo [`consultas.sql`](amazon_marketplace/consultas.sql) reúne consultas com junções, filtros, agrupamento e ordenação.
+
+| Consulta | Tipo | Resultado |
+|---|---|---|
+| Pedidos com o nome do cliente | `INNER JOIN` | `pedidos` e `usuarios`, do pedido mais recente para o mais antigo |
+| Produtos e seus estoques | `LEFT JOIN` | todos os produtos, com quantidade `0` quando não há registro de estoque |
+| Total de pedidos por usuário | `RIGHT JOIN` + `GROUP BY` | todos os usuários, inclusive os sem pedidos |
+| Vendas por vendedor | 4 tabelas + `GROUP BY` + `HAVING` | pedidos, unidades e faturamento por loja, sem contar pedidos cancelados |
 
 ### 🛠️ Scripts de manutenção
 
-O arquivo [`manutencao.sql`](amazon_marketplace/manutencao.sql) mostra como usar `ALTER`, `UPDATE`, `DELETE` e `DROP`. As mudanças de `UPDATE` e `DELETE` são desfeitas com `ROLLBACK`, para manter os dados de exemplo.
+O arquivo [`manutencao.sql`](amazon_marketplace/manutencao.sql) mostra como alterar a estrutura e os dados sem perder o conteúdo de exemplo.
+
+| Comando | Exemplo |
+|---|---|
+| `ALTER TABLE` | amplia o campo `codigo` da tabela `cupons` para `VARCHAR(40)` |
+| `UPDATE` | altera o preço do produto 1 dentro de uma transação, desfeita com `ROLLBACK` |
+| `DELETE` | apaga o item 1 do carrinho dentro de uma transação, desfeita com `ROLLBACK` |
+| `DROP` | cria e exclui uma tabela temporária usada apenas no exemplo |
 
 ---
 
@@ -396,7 +427,7 @@ Os arquivos devem ser executados **nesta ordem**:
 
 > ⚠️ O `atividade_amazon.sql` começa com `DROP DATABASE IF EXISTS amazon_marketplace;`. Se o banco já existir, todo o conteúdo será apagado e recriado.
 
-> ⚠️ Os triggers devem ser criados **depois** da carga de dados, para que os 699 `INSERT` não disparem a validação e a baixa de estoque. O `usuarios.sql` precisa rodar antes do `permissoes.sql`, pois os usuários devem existir para receber permissões.
+> ⚠️ O `manutencao.sql` deve ser o último, pois altera o tamanho de `cupons.codigo`. Os triggers devem ser criados **depois** da carga de dados, para que os 699 `INSERT` não disparem a validação e a baixa de estoque. O `usuarios.sql` precisa rodar antes do `permissoes.sql`, pois os usuários devem existir para receber permissões.
 
 ### Pelo MySQL Workbench
 
